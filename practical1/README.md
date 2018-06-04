@@ -50,19 +50,19 @@ This will run the previously issued command as root.
 ### Pipe commands
 Output from the Linux terminal can be directed to annother program by using the pip (|) character followed by the program/command. A common example is to use `|less` to display the output in a scrollable way. For example, try running the follofing command:
 
-`find /lib`
+`find /lib/`
 
 This will print a long list of outputs displaying all files in the /lib directory. Suppose we wanted to scroll though this list? We can pipe the output to **less** to do this.
 
-`find /lib | less`
+`find /lib/ | less`
 
 Now we can use the arrow keys to scroll up and down through the output. Another command pipe is **grep**. This allows use to apply a *filter* to the output. Suppose we only want files that contain the word **linux**. We can use **grep** as follows:
 
-`find /lib |grep linux`
+`find /lib/ |grep linux`
 
 Notice that the word "linux" is now displayed in colour to highlight the match. There is still a lot of output generated, so lets combine the **less** and **grep** commands:
 
-`find /lib |grep linux |less`
+`find /lib/ |grep linux |less`
 
 First we apply the filter using **grep**, and then we pipe that output to the **less** command. The result is a scrollable output with only entries containing the word "linux". 
 
@@ -106,7 +106,7 @@ Depending on the system, the home directory will containg the following structur
     * Videos
 
 #### /tmp Directory
-This directory will get cleaned each time the machine reboots. It is a useful directory to put things you don't want to keep. i.e. temporary installation files while compiling and so on. It is also located in /.
+This directory will get cleaned periodically. It is a useful directory to put things you don't want to keep. i.e. temporary installation files while compiling and so on. It is also located in /.
 
 ## File paths
 There three ways to refer to paths. The first is through absolute paths. Absolute paths will always start at root. For example, the absolute path to the *Documents* folder of the current user would be `/home/user/Documents`, where *user* is the name of the current user.
@@ -147,7 +147,7 @@ Environmental variables describe things such as where to look for programs or co
 
 Later on in the workshop, you will learn how to use these variables to create powerful scripts that can be used to automate certain tasks. For the purpose of this practical, we will be focussing on the **PATH** variable.
 
-To set an environmental variable, user the `export` command. This will make the variable globally available in the current termiinal session. To make a variable permanent (i.e. exist after logout), you will need to add it to the */etc/profile* or *~/.bash-profile* files. For example, to create a variable called MYDIR that refers to some useful diretory on the machine, use the following:
+To set an environmental variable, user the `export` command. This will make the variable globally available in the current termiinal session. To make a variable permanent (i.e. exist after logout), you will need to add it to the */etc/profile* or *~/.bash_profile* files. For example, to create a variable called MYDIR that refers to some useful diretory on the machine, use the following:
 
 `export MYPATH=/pathtowhatever`
 
@@ -185,3 +185,53 @@ Nano is a very simple tool to use. **vi** by contrast, is a lot harder to learn,
 
 ### Side Note
 There is an extended version of **vi** called **vim** that I would recommend using instead. It has numerous useful plugins and has syntax highlighting for common source and config files. You can install it by running `yum install vim` on CentOS or `apt install vim` on Ubuntu. To install plugins, look at [the following](https://github.com/VundleVim/Vundle.vim) link.
+
+## Practical Instructions
+You have been given an virtual machine with a minimal installation of CentOS 7. In this practical, you will get this virtual machine up and running. 
+
+
+
+### Step 1 - Getting your bearings
+Two user accounts have been created, *root* and and an admin account called *hpc*. The details of each are listed in the table below.
+
+Username | Password
+------------ | -------------
+root| hpcworkshop
+hpc | hpc2018
+
+Make use of the *hpc* user and login to your machine.
+
+Once you are logged in, lets get some information about our machine. 
+Start by printing the full path of your current directory, and list all the files and directories along with their permissions.
+
+Solution: `pwd; ls -la`
+
+Next, print a summary of what will happen automatically each time your **current** user logs in.
+
+Solution: `cat .bashrc`
+
+Next, append a custom welcome message for your current user. Hint: you can echo a string to the .bashrc file as follows:
+
+`echo "echo some message..." >> .bashrc`
+
+Make sure you use **>>** and not **>**, as this will replace the contents of the *.bashrc* file!
+
+Check that your message is working by logging out and back in again.
+
+Solution: Add the following to *.bashrc*. `echo Welcome admin user. Have a great day~`
+
+Next, we need to check that the **nano** program is installed. If it is not installed, you need to install it (unless you want to try to use **vi** for the remainder of this practical).
+
+Solution: `which nano` or just try running **nano**. To install run `sudo yum install nano`
+
+Start by checking which services are currently running. You should check specifically whether or not the **NetworkManager** services is running.
+
+Solution: `ps -ax |grep NetworkManager` or `systemctl status NetworkManager`
+
+Solution: `touch /etc/profile.d/ufs.sh` and add `export http_proxy`
+
+
+Create a script called **summary.sh**. The script should do the following:
+
+
+
