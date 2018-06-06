@@ -12,43 +12,87 @@ You should have noticed that there are already a number of config files there. W
 
 `ip addr`
 
-This will print a summary of all the network adapters and their IP addresses. On the head note you should see two network adpaters, one of which has your public IP address (the one that has internet access). The worker node should only have a single interface. The names should look something like *enp3s0* (or some other number). Remember these names.
+This will print a summary of all the network adapters and their IP addresses. On the head node you should see two network adpaters, one of which has your public IP address (the one that has internet access). The worker node should only have a single interface. The names should look something like *enp3s0* (or some other number). Remember these names.
 
-***Note***
-Write down the names of your adapters on your head node so that you remember which one refers to the private network, and which one is the public interface.
+**Note:** Write down the names of your adapters on your head node so that you remember which one refers to the private network, and which one is the public interface.
 
 ### Setting the static addresses
-Now, on each of your nodes, modify the config file of the **private** adapter, changing the address where necessary. Your config will resemble this following:
+Now, on each of your nodes, modify the config file of the **private** adapter, changing the address where necessary. Your config will resemble the following:
 
-DEVICE=enp0s8
-BOOTPROTO=static
-ONBOOT=yes
-TYPE=Ethernet
-IPADDR=192.168.0.1
-#Don't need gateway on HN
-#GATEWAY=192.168.xx.1
-NETMASK=255.255.255.0
-#Google public DNS
-DNS1=8.8.8.8
-IPV6INIT=no
-USERCTL=no
+```
+    DEVICE=enp0s8
+    BOOTPROTO=static
+    ONBOOT=yes
+    TYPE=Ethernet
+    IPADDR=192.168.0.1
+    #Don't need gateway on HN
+    #GATEWAY=192.168.0.x
+    NETMASK=255.255.255.0
+    #Google public DNS
+    DNS1=8.8.8.8
+    IPV6INIT=no
+    USERCTL=no
+```
+
 Make sure you have the correct devices names!
 
 **Note:** This is an example of /etc/sysconfig/network-scripts/ifcfg-enp0s8. Your device names may differ, so it may be eg: /etc/sysconfig/network-scripts/ifcfg-eth1 After modifying the file(s) restart the network service:
 
-`systemctl restart network`
+<!-- Solution: `systemctl restart network` -->
 
-Once the network has restarted, check your new IP address to make sure it is correct. If everything was done correcntly on both machines you should be able to ping between the two nodes. So, for example, from the head node, try:
+Once the network has restarted, check your new IP address to make sure it is correct. If everything was done correctly on both machines you should be able to ping between the two nodes. So, for example, from the head node, try:
 
 `ping 192.168.0.2`
 
 This assumes that `192.168.0.2` is the address of you worker node.
 
 ## Configuring SSH
-We need to disable DNS lookups on the ssh service to prevent the machine from trying to resolve ip addresses to names. To do this, we need to edit the `/etc/ssh/sshd_config` file. Find the line where you see **UseDNS** and change it to *no*. Restart the sshd service after saving.
+**SSH**, or Secure Socket Shell is the protocol we will use to log in to our worker nodes and execute programs.
 
+`ssh username@address`
+
+The *address* can also be a host name. See [this section](#hosts-file) for more information.
+
+We need to disable DNS lookups on the ssh service to prevent the machine from trying to resolve IP addresses to names. To do this, we need to edit the `/etc/ssh/sshd_config` file. Find the line where you see **UseDNS** and change it to *no*. Restart the sshd service after saving.
+
+<!-- Solution: `systemctl restart sshd` -->
 We are now ready to try log in to our worker node from our head node. To login, we can run the following command:
 
 `ssh hpc@192.168.0.2`
 
 In this example, *hpc* is the name of our user. This user must exist on the other machine for this to work. **Note:** The first time you log in you will be prompted to accept the key from the other machine. You can enter *yes* as we trust the machine (it is our machine!).
+
+### Checklist
+Before proceeding, make sure you have checked the following:
+- [x] Private internal network has been configured
+- [x] You can ping between nodes
+- [x] You have turned off DNS in the sshd service 
+- [x] You can ssh between nodes using your user account.
+
+## Hosts file
+It can be difficult to keep track of all the IP addresses in your cluster. Also, you might need to change addresses at some point. This would mean changing all the config files too. Luckily Linux allows us to "name" our IP addresses bu associating them with a name. This is done in the `/etc/hosts` file.
+
+Add an entry in the hosts file of each node so that you can refer to the other node by name. Use the following convention:
+
+Node | Hostname | Address
+-----|----------|--------
+Head | hn | 192.168.0.1
+Worker | wn | 192.168.0.2
+
+Once you have this setup, you can make use of it to ssh. For example, `ssh hpc@wn` would login the worker node from the head node.
+
+## Security features
+Linux contains security services that are used to protect the system from attacks. However, in our workshop some of these services can interfere with our tasks, so we will turn them off. There are two things that need to be disabled. The first is **selinux**. The second is the **firewalld** service.
+
+- **selinux** can be turned off in the `/etc/selinux/conf` folder.
+- **firewalld** is a service that can be disabled.
+
+## Passwordless login
+Many programs will make use of ssh to execute across the cluster's worker nodes. If a password is required, these jobs will fail. We can replace the password with an authorised key. An SSH key consists of a private and public key. The private key should never be shared. You can make use of the public key to login to the other nodes by adding it to the autorized_keys file on your worker node (or head node from the worker node).
+
+To generate a key, make use of `ssh-keygen`.
+
+**Note:** in a later section we will sync the keys to all the nodes using NFS.
+
+## Worker node internet
+You may may noticed that our worker nodes don't have access to the internet.
