@@ -74,7 +74,9 @@ The second (and easier) way is to make use of the package manager. Software is i
 `sudo yum install packagename`
 
 ### Side Note
-When adding new repositores, you may need to run an update command first to determine which packages are available. This will also update all existing packages, so it can take a while to do. You can update individual packages by running `yum update packagename`.
+When adding new repositories, you may need to run an update command first to determine which packages are available (not necessary on CentOS). 
+
+Doing an update on CentOS will update all existing packages, so it can take a while to do. You can update individual packages by running `yum update packagename`.
 
 There is also a `groupinstall` option that can be useful to install a number of related packages. You will see this in action when building your cluster.
 
@@ -204,11 +206,11 @@ Make use of the *hpc* user and login to your machine.
 Once you are logged in, lets get some information about our machine. 
 Start by printing the full path of your current directory, and list all the files and directories along with their permissions.
 
-Solution: `pwd; ls -la`
+<!-- Solution: `pwd; ls -la` -->
 
 Next, print a summary of what will happen automatically each time your **current** user logs in.
 
-Solution: `cat .bashrc`
+<!-- Solution: `cat .bashrc` -->
 
 Next, append a custom welcome message for your current user. Hint: you can echo a string to the .bashrc file as follows:
 
@@ -218,20 +220,77 @@ Make sure you use **>>** and not **>**, as this will replace the contents of the
 
 Check that your message is working by logging out and back in again.
 
-Solution: Add the following to *.bashrc*. `echo Welcome admin user. Have a great day~`
+<!-- Solution: Add the following to *.bashrc*. `echo Welcome admin user. Have a great day` -->
 
 Next, we need to check that the **nano** program is installed. If it is not installed, you need to install it (unless you want to try to use **vi** for the remainder of this practical).
+<!-- Solution: `which nano` or just try running **nano**. To install run `sudo yum install nano` -->
+At this point, your installation will probably fail. This is because we are behind a proxy. We will need to set an environmental variable called `HTTP_PROXY` in order to proceed. Create a file called `ufs.sh` in the `/etc/profile.d/` folder. Inside this folder, add the following three environmental variables:
 
-Solution: `which nano` or just try running **nano**. To install run `sudo yum install nano`
+Variable | Value
+---------|-------
+HTTP_PROXY | http://196.255.243.15:3128
+HTTPS_PROXY | http://196.255.243.15.3128
+FTP_PROXY| http://196.255.243.15:3128
 
+<!-- Solution: `touch /etc/profile.d/ufs.sh` and add `sudo echo 'export http_proxy=http://196.255.243.15:3128' >> /etc/profile.d/ufs.sh` -->
+Now, switch to the root user and install nano.
+<!-- Solution: sudo -s; yum install nano -->
+
+As a final step, we will create a small script and make it accessible throught the system. First, create a file in your home directory and add the following to it:
+
+`du -h -d 1 $HOME`
+
+Now, move this file to the following folder: `/var/soft/`. **Note: ** You will need to create this folder.
+<!-- Solution: `sudo mkdir -p /var/soft; sudo mv filename /var/soft/filename` -->
+
+Check the permissions that are currently present on this file.
+
+<!-- Solution: ls -l /var/soft/filename -->
+At this stage, only your user can read and write to this file. However, we would like everyone on the system to be able to execute this file. Modify this file so that it is executable by all users, and then try to execute this file. What is the output you get?
+
+<!-- Solution: sudo chmod 755 /var/soft/filename -->
+
+Finally, we need to add this program to the **$PATH** variable. You can modify the variable, but we will make use of another technique. 
+
+Recall that linux software is located in /bin. However, we don't want to put our program there directly. Instead, we will make use of linking. Linux allows us to create links between folders using the `ln` command. Let's make use of this to add our "program" to `/bin`.
+
+`sudo ln -s /var/soft/filename /bin`
+
+Check that the link was created by running the following:
+
+`ls -l /bin |grep filename`
+
+Notice that the `ls` command shows the link. Now we can run our "program" from anywhere. Try it out.
+
+### Section 2 - Working with services
 Start by checking which services are currently running. You should check specifically whether or not the **NetworkManager** services is running.
 
-Solution: `ps -ax |grep NetworkManager` or `systemctl status NetworkManager`
 
-Solution: `touch /etc/profile.d/ufs.sh` and add `export http_proxy`
+<!-- Solution: `ps -ax |grep NetworkManager` or `systemctl status NetworkManager` -->
 
+As you will see in later practicals, some services will need to be restarted after making changes to their configuration files. We will also disable some service. Try to restart the NetworkManager service.
 
+<!-- Solution: `systemctl restart NetworkManager` -->
+
+Finally, stop the NetworkManger service, and then disable it.
+
+<!-- Solution: `systemctl stop NetworkManager; systemctl disable NetworkManager`; -->
+
+### Section 3 - Installing from source
+Download the tarball from the following link using the **wget** command:
+
+`https://github.com/jplouisduplessis/hpcworkshop/blob/master/practical1/textgen.tar.gz`
+
+Much of the software you will get off the internet will be packaged in this format. You need to extract these files to proceed. After you have downloaded the files, follow the instructions in README.md and build and install this program into the `/var/soft/ directory and make the program accessible throughout the system. Be sure to set the correct permissions.
+
+Once you have installed the software, run it with two arguments: 100000000 test.txt. This will create a file called *test.txt* in the current directory that contains 10000000 characters.
+<!-- Solution: `tar  -->
+### Section 4 Automating tasks
 Create a script called **summary.sh**. The script should do the following:
+1. Display the current working directory and user.
+2. Display a summary of the current users' home directory's files and directories.
+3. Display the disc usage of the user's home directory.
 
+Make sure that this script gets run each time any user logs in.
 
 
