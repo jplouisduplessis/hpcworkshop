@@ -100,7 +100,7 @@ You may may noticed that our worker nodes don't have access to the internet. To 
 IPTables is a firewall that is widely used on GNU Linux. In recent years, RedHat and SuSE Linux moved over to FirewallD. However, a lot of GNU Linux users still prefer IPTables. The configuration of IPTables is done in the `/etc/sysconfig/iptables` file but before modifying it, we have to make sure that IPTables is installed.
 
 ```
-yum -y install iptables
+yum -y install iptables-service
 systemctl enable  iptables
 systemctl start iptables
 
@@ -152,10 +152,44 @@ Test your internet connection on your worker nodes before proceeding.
 NFS allows us to share files over the network. This is useful for sharing programs across all nodes, or ensuring that a user's data is distributed to all the nodes.
 
 ### Installing NFS server
-This is done on the head node. First, prepare the directories that you want to share over the network. We will share the /home, a /scratch (for program data) and /var/soft (for our software).
+This is done on the head node. First, prepare the directories that you want to share over the network. We will share the `/home`, a `/scratch` (for program data) and `/soft` (for our software).
 
+It is good practice to use a logical path for your NFS mounts. We will practice this concept using the `/scratch/` and `/soft` directories. First, create a directory called `exports` in `/`. Next, create the `scratch` and `soft` directory inside the `exports` directory. Now we can link these two directories to our `/` path by creating a symbolic link. For example:
+
+`sudo ln -s /exports/soft /`
+
+Now we need to setup our NFS service. First, we specify which directories will be shared. Edit `/etc/exports`, to contain the following (**Note**, you might have to change the IP addresses to yours):
+
+```
+/home        192.168.0.0/24(async,rw,no_root_squash)
+/soft        192.168.0.0/24(async,rw,no_root_squash)
+/scratch     192.168.0.0/24(async,rw,no_root_squash)
+```
+
+Now install the `nfs-server` package and check that the service is running. If not, make use of `systemctl` to start the following to services:
+
+* rpcbind
+* nfs
 
 ### Installing NFS clients
-This is done on the worker node.
+Now for the worker nodes. First install the `nfs-utils` package. Next, we need to create some directories to mount our shares in (e.g. `/scratch` and so on). Make sure the NFS service is running. To mount our shares, we use the **mount** command. It works as follows:
+
+`mount sourcepoint mountpoint`
+
+You might need to specify a file system type. We can now try to mount our network share.
+
+```
+mount wn:/scratch /scratch
+mount wn:/soft /soft
+mount wn:/home /home
+```
+
 ### Making NFS persistant
-Modify `/etc/fstab` file. This file stores volumes that should be mounted when the system boots up.
+To make the NFS mount automatically at startup, we need to modify the `/etc/fstab` file. This file stores volumes that should be mounted when the system boots up. Append the following to the file:
+
+```
+wn:/scratch  /scratch nfs  rw,tcp,noatime 0 0
+wn:/soft     /soft    nfs  rw,tcp,noatime 0 0
+wn:/home     /home    nfs  rw,tcp,noatime 0 0
+```
+
