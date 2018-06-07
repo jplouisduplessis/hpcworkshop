@@ -86,6 +86,8 @@ Linux contains security services that are used to protect the system from attack
 
 - **selinux** can be turned off in the `/etc/selinux/conf` folder.
 - **firewalld** is a service that can be disabled.
+ 
+You will need to reboot the machine for the changes to **selinux** to take effect.
 
 ## SSH login with keys
 Many programs will make use of ssh to execute across the cluster's worker nodes. If a password is required, these jobs will fail. We can replace the password with an authorised key. An SSH key consists of a private and public key. The private key should never be shared. You can make use of the public key to login to the other nodes by adding it to the authorized_keys file on your worker node (or head node from the worker node).
@@ -95,7 +97,7 @@ To generate a key, make use of `ssh-keygen`. You can use the `ssh-copy-id` comma
 **Note:** In a later section we will sync the keys to all the nodes using NFS.
 
 ## Worker node internet
-You may may noticed that our worker nodes don't have access to the internet. To enable access we will make use of Network Address Translation (NAT). We need to set up some rules in *IPTables* to forward packets from our internal network to the internet.
+You may have noticed that our worker nodes don't have access to the internet. To enable access we will make use of Network Address Translation (NAT). We need to set up some rules in *IPTables* to forward packets from our internal network to the internet.
 
 IPTables is a firewall that is widely used on GNU Linux. In recent years, RedHat and SuSE Linux moved over to FirewallD. However, a lot of GNU Linux users still prefer IPTables. The configuration of IPTables is done in the `/etc/sysconfig/iptables` file but before modifying it, we have to make sure that IPTables is installed.
 
@@ -166,7 +168,7 @@ Now we need to setup our NFS service. First, we specify which directories will b
 /scratch     192.168.0.0/24(async,rw,no_root_squash)
 ```
 
-Now install the `nfs-server` package and check that the service is running. If not, make use of `systemctl` to start the following to services:
+Now install the `nfs-utils` package and check that the **server** service is running. If not, make use of `systemctl` to *enable* and *start* the following to services:
 
 * rpcbind
 * nfs
