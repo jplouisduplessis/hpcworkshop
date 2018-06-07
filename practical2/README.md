@@ -190,9 +190,9 @@ mount wn:/home /home
 To make the NFS mount automatically at startup, we need to modify the `/etc/fstab` file. This file stores volumes that should be mounted when the system boots up. Append the following to the file:
 
 ```
-wn:/scratch  /scratch nfs  rw,tcp,noatime 0 0
-wn:/soft     /soft    nfs  rw,tcp,noatime 0 0
-wn:/home     /home    nfs  rw,tcp,noatime 0 0
+hn:/scratch  /scratch nfs  rw,tcp,noatime 0 0
+hn:/soft     /soft    nfs  rw,tcp,noatime 0 0
+hn:/home     /home    nfs  rw,tcp,noatime 0 0
 ```
 
 ## Environmental Modules
@@ -241,3 +241,8 @@ If you can do the following on your cluster, you have sucesfully completed the p
 - [x] You can ssh without passwords between all the nodes.
 - [x] You have a working NFS (try creating a file to test)
 - [x] Environmental modules is installed and loaded on login with a default module file
+
+## System Summary
+The image below summarises our cluster so far.
+
+![System summary](summary.png)
