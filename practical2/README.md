@@ -181,9 +181,9 @@ Now for the worker nodes. First install the `nfs-utils` package. Next, we need t
 You might need to specify a file system type. We can now try to mount our network share.
 
 ```
-mount wn:/scratch /scratch
-mount wn:/soft /soft
-mount wn:/home /home
+mount hn:/scratch /scratch
+mount hn:/soft /soft
+mount hn:/home /home
 ```
 
 ### Making NFS persistant
