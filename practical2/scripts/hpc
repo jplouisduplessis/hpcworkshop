@@ -2,32 +2,31 @@
 #
 #  HPC module for use with 'environment-modules' package:
 
-set           SOFT                  /soft
-set           MODULES               $SOFT/modules
+set           SOFT                  /soft
+set           MODULES               $SOFT/modules
 
-set           username              $::env(USER)
-set           tmp_scratch           /scratch/$username
+set           username              $::env(USER)
+set           tmp_scratch           /scratch/$username
 
 if {[info exists env(PBS_JOBNAME)]} {
-    set scratch     $tmp_scratch/$env(PBS_JOBID).$env(PBS_JOBNAME)
-
+     set scratch $tmp_scratch/$env(PBS_JOBID).$env(PBS_JOBNAME)
 } else {
-    set scratch     $tmp_scratch
+   set scratch   $tmp_scratch
 }
 
-setenv        HPC_SOFT              $SOFT
-setenv        HPC_MODULE_PATH       $MODULES
-setenv        HPC_TMP               /tmp
-setenv        HPC_SCRATCH           $scratch
-setenv        HPC_OWNER             root
-setenv        HPC_GROUP             hpcuser
-setenv        TERM                  linux
+setenv        HPC_SOFT              $SOFT
+setenv        HPC_MODULE_PATH       $MODULES
+setenv        HPC_TMP               /tmp
+setenv        HPC_SCRATCH           $scratch
+setenv        HPC_OWNER             root
+setenv        HPC_GROUP             hpcuser
+setenv        TERM                  linux
 
-prepend-path  MODULEPATH            $MODULES
-prepend-path  PATH                  $SOFT/hpc
+prepend-path  MODULEPATH            $MODULES
+prepend-path  PATH                  $SOFT/hpc
 
-append-path   INCLUDE               /usr/include
-append-path   LD_LIBRARY_PATH       /usr/lib64
-append-path   PKG_CONFIG_PATH       /usr/lib64/pkgconfig
+append-path   INCLUDE               /usr/include
+append-path   LD_LIBRARY_PATH       /usr/lib64
+append-path   PKG_CONFIG_PATH       /usr/lib64/pkgconfig
 
-set-alias     vi                    "/usr/bin/vim"
+set-alias     vi                    "/usr/bin/vim"
