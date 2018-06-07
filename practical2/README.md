@@ -245,4 +245,4 @@ If you can do the following on your cluster, you have sucesfully completed the p
 ## System Summary
 The image below summarises our cluster so far.
 
-![System summary](summary.png)
+![System summary](https://github.com/jplouisduplessis/hpcworkshop/blob/master/practical2/summary.png)
