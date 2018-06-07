@@ -82,7 +82,7 @@ Worker | wn | 192.168.0.2
 Once you have this setup, you can make use of it to ssh. For example, `ssh hpc@wn` would log into the worker node from the head node.
 
 ## Security features
-Linux contains security services that are used to protect the system from attacks. However, in our workshop some of these services can interfere with our tasks, so we will turn them off. There are two things that need to be disabled. The first is **selinux**. The second is the **firewalld** service.
+Linux contains security services that are used to protect the system from attacks. However, in our workshop some of these services can interfere with our tasks, so we will turn them off. There are two things that need to be disabled. The first is **selinux**. The second is the **firewalld** service. You should disable these services on all machines in your cluster.
 
 - **selinux** can be turned off in the `/etc/selinux/conf` folder.
 - **firewalld** is a service that can be disabled.
@@ -212,6 +212,7 @@ cat > /etc/profile.d/zhpc.sh <<EOF
 #!/bin/bash
 
 export MODULEPATH=\$MODULEPATH:/soft/modules
+module load hpc
 EOF
 
 #Now create the same file for the C-Shell:
@@ -220,15 +221,12 @@ cat > /etc/profile.d/zhpc.csh <<EOF
 #!/bin/csh
 
 setenv MODULEPATH "\$MODULEPATH:/soft/modules"
+module load hpc
 EOF
 chmod 755 /etc/profile.d/zhpc.{sh,csh}
 ```
 
  I would recommend creating a Generic module, that is copied to all the nodes and holds generic variables that nodes can use. To save time, we have uploaded a file called **hpc** to the `practical2/scripts` folder on Github. Make use of **wget** to retrieve this file and place it in `/usr/share/Modules/modulefiles/hpc`.
-
- Now we need to create a script file that will load the module specified in this file each time a user logs in. So, in `/etc/profile.d/` create a file called *module_hpc.sh* and add the following to it:
-
-`module load hpc`
 
 The benefit of this module is that the environment will be set up in such a way that modules put in `/soft/modules`, will be available to be loaded by users. An entry is made to add `/soft/hpc` as a location where scripts can be put that will be in the user's path. The users will be able to execute scripts that are in this path.
 
