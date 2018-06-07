@@ -24,3 +24,22 @@ Again, this will take several minutes to complete. If everything works, we can i
 
 `make install`
 
+## Monitoring progress
+It can be useful to monitor the utilisation of your system during task execution. This will allow you to spot potential issues early on. For example, you might have specified the number of cores to use incorrectly, causing your job to run on fewer nodes that possible.
+
+We will be installing a program called **htop**. This program is not in our current repositories, so we need to add the `epel-release` repository. This is a very useful repository full of tools needed for debugging, compiling programs and so on. You should install it right from the start. **Note:** it is a large repository.
+
+`yum -y install epel-release`
+
+Once this is done, install the **htop** program.
+
+`yum install htop`
+
+This will give us a nice representation of our system usage, as well as all processes active on our node. You can filter processes by user by adding the `-u` flag.
+
+`htop -u hpc`
+
+This will show only the processes used by the *hpc* user.
+
+
+
