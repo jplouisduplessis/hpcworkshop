@@ -6,7 +6,7 @@ As we are in an a virtual environment, we need to add an additional network inte
 On the worker node, simply change the existing NAT inteface to Internal Network.
 
 ### Configuring internal network
-The two adapters we added will be used for the private internal network of the cluster. These IP addresses will need to be assigned by hand. We will need to create/modify configuration files for these adapters on both the worker and head node. In CentOS, the configuration files are located in `/etc/syscondig/network-scipts`. Quickly check the contents of this directory.
+The two adapters we added will be used for the private internal network of the cluster. These IP addresses will need to be assigned by hand. We will need to create/modify configuration files for these adapters on both the worker and head node. In CentOS, the configuration files are located in `/etc/sysconfig/network-scipts`. Quickly check the contents of this directory.
 
 You should have noticed that there are already a number of config files there. We need to modify the one related to our adapter. So, let us check the name(s) of our adapters.
 
@@ -21,7 +21,7 @@ Now, on each of your nodes, modify the config file of the **private** adapter, c
 
 ```
     DEVICE=enp0s8
-    BOOTPROTO=static
+    BOOTPROTO=none
     ONBOOT=yes
     TYPE=Ethernet
     IPADDR=192.168.0.1
@@ -100,7 +100,7 @@ You may may noticed that our worker nodes don't have access to the internet. To 
 IPTables is a firewall that is widely used on GNU Linux. In recent years, RedHat and SuSE Linux moved over to FirewallD. However, a lot of GNU Linux users still prefer IPTables. The configuration of IPTables is done in the `/etc/sysconfig/iptables` file but before modifying it, we have to make sure that IPTables is installed.
 
 ```
-yum -y install iptables-service
+yum -y install iptables-services
 systemctl enable  iptables
 systemctl start iptables
 
@@ -193,3 +193,49 @@ wn:/soft     /soft    nfs  rw,tcp,noatime 0 0
 wn:/home     /home    nfs  rw,tcp,noatime 0 0
 ```
 
+## Environmental Modules
+The Environment Modules package is very useful to manage users' environments. It allows you to write a module file for multiple versions of software and then allows the user to choose which version (s)he would like to use. For instance, you can install 4 different versions of GCC and then just use the one you require for a
+specific purpose. It becomes especially helpful when installing Scientific Software because usually a researcher will use a specific version for his research, while another researcher needs another version for her research. You can install Environment modules by downloading the latest version from the http://modules.sourceforge.net/ website, or you can install the package through yum. I would recommend the yum install method because you have to install this package on all the nodes and the yum package available online will suffice for this exercise.
+
+`yum install environment-modules`
+
+The install creates a few modules in `/usr/share/Modules/modulefiles`. They can be useful to look at. To see the modules available, execute the following command:
+
+`module avail`
+
+Now we want the module command to look for modules in our software directory too. To achieve this, we can create a file called `/etc/profile.d/zhpc.sh`, that is loaded when a user logs in to set the MODULEPATH. We make the filename `zhpc.sh` because the order of execution in the /etc/profile.d is done alphabetically and we need the `/etc/profile.d/modules.sh` to be executed before our script is loaded. The following commands will create the file and make it executable:
+
+```
+cat > /etc/profile.d/zhpc.sh <<EOF
+#!/bin/bash
+
+export MODULEPATH=\$MODULEPATH:/soft/modules
+EOF
+
+#Now create the same file for the C-Shell:
+
+cat > /etc/profile.d/zhpc.csh <<EOF
+#!/bin/csh
+
+setenv MODULEPATH "\$MODULEPATH:/soft/modules"
+EOF
+chmod 755 /etc/profile.d/zhpc.{sh,csh}
+```
+
+ I would recommend creating a Generic module, that is copied to all the nodes and holds generic variables that nodes can use. To save time, we have uploaded a file called **hpc** to the `practical2/scripts` folder on Github. Make use of **wget** to retrieve this file and place it in `/usr/share/Modules/modulefiles/hpc`.
+
+ Now we need to create a script file that will load the module specified in this file each time a user logs in. So, in `/etc/profile.d/` create a file called *module_hpc.sh* and add the following to it:
+
+`module load hpc`
+
+The benefit of this module is that the environment will be set up in such a way that modules put in `/soft/modules`, will be available to be loaded by users. An entry is made to add `/soft/hpc` as a location where scripts can be put that will be in the user's path. The users will be able to execute scripts that are in this path.
+
+Remember to copy the `/etc/profile.d/modules_hpc.sh` file and the `/usr/share/Modules/modulefiles/hpc` files to all the machines, so you can create it on one node and scp it to the other nodes.
+
+### Practical Checklist
+If you can do the following on your cluster, you have sucesfully completed the practical and are ready to install some scientific software!
+- [x] Private internal network has been configured
+- [x] You can ping between nodes
+- [x] You can ssh without passwords between all the nodes.
+- [x] You have a working NFS (try creating a file to test)
+- [x] Environmental modules is installed and loaded on login with a default module file
