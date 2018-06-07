@@ -1,0 +1,52 @@
+#!/bin/bash
+clear
+if ! [ $(hostname -s ) == "hn" ]; then
+        echo "You must run this from your HeadNode"
+        exit 1
+fi
+echo
+
+echo -n  "Does HN have a private IP: "
+ping -c 1 192.168.0.1 > /dev/null && echo yes || echo no
+echo -n  "Can I Ping the WN: "
+ping -c 1 192.168.0.2 > /dev/null && echo yes || echo no
+echo
+
+echo -n "Is SELinux disabled on HN: "
+getenforce
+echo -n "Is SELinux disabled on the wn: "
+ssh -n 192.168.0.2 "/usr/sbin/getenforce"
+echo
+
+echo -n "Is HN defined in the hosts file: "
+cat /etc/hosts |grep "192\.168\.0\.1.*hn" > /dev/null && echo yes || echo no
+echo -n "Is WN defined in the hosts file: "
+cat /etc/hosts |grep "192\.168\.0\.2.*wn" > /dev/null && echo yes || echo no
+echo
+
+echo -n "Does the WN have internet access: "
+ssh -n 192.168.0.2 "yum search nano > /dev/null && echo yes || echo no" 2>/dev/null
+echo
+
+echo -n "Is NFS installed on the HN: "
+rpm -q nfs-utils > /dev/null && echo yes || echo no
+echo -n "Is NFS installed on the WN: "
+ssh -n 192.168.0.2 "rpm -q nfs-utils > /dev/null && echo yes || echo no" 2>/dev/null
+echo
+
+echo -n "Is NFS configured on the HN: "
+grep "/home" /etc/exports > /dev/null && echo yes || echo no
+echo
+
+echo -n "Is the NFS Share(s) mounted on the WN: "
+ssh -n 192.168.0.2 "mount |grep '^.*:/home' > /dev/null && echo yes || echo no" 2>/dev/null
+echo
+
+echo -n "Is the mountpoints saved in the fstab on WN: "
+ssh -n 192.168.0.2 "cat /etc/fstab |grep '.*:/home.*/home' > /dev/null && echo yes || echo no" 2>/dev/null
+
+echo -n  "Can I save a file on HN and see it on WN through NFS: "
+pid=$$
+touch /home/hpc/$pid
+ssh -n 192.168.0.2 "ls /home/hpc/$pid >/dev/null && echo yes || echo no" 2>/dev/null
+/bin/rm -f /home/hpc/$pid
