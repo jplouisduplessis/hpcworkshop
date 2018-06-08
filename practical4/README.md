@@ -1,0 +1,2 @@
+# Optimisation and automation
+This practical will deal with how to squeeze out extra performance from your cluster. We will also look at how to write and utilise scripts to automate certain parts of the cluster configuration process.=
