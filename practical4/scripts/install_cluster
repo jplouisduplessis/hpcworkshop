@@ -1,0 +1,200 @@
+#!/bin/bash
+
+#Private IP Settings
+HN_IP=192.168.0.1
+WN01_IP=192.168.0.2
+WN02_IP=192.168.0.3
+DOMAIN_NAME=hpcworkshop.com
+DNS_SERVER=146.182.9.185
+HN_HOSTNAME=hn
+WN01_HOSTNAME=wn01
+WN02_HOSTNAME=wn02
+PRIVATE_IP_RANGE=192.168.0.0/24
+HN_INTERFACE_PRIVATE=enp0s3
+HN_INTERFACE_PUBLIC=enp0s8
+
+
+Install_Node=
+
+if ! [ $USER == "root" ]; then
+	echo "You must run this script as root."
+	exit 1
+fi
+
+
+while [ "$Install_Node" == "" ]; do
+	clear
+	echo
+	echo "Which Machine do you want to install, using this script?"
+	echo
+	echo "Valid Options:"
+	echo "        $HN_HOSTNAME"
+	echo "        $WN01_HOSTNAME"
+	echo "        $WN02_HOSTNAME"
+	echo
+	echo -n "Your option: "
+	read userinput
+	result=$(echo $userinput |tr 'A-Z' 'a-z')
+	
+	case $result in
+	"$HN_HOSTNAME" | "$WN01_HOSTNAME" | "$WN02_HOSTNAME" )
+		Install_Node=$result
+		;;
+	*)
+		Install_Node=
+		;;
+	esac		
+done
+
+
+######################################################
+#       Disable DNS Lookup for SSH sessions:         #
+######################################################
+sed -i "s|^#UseDNS.*|UseDNS no|g" /etc/ssh/sshd_config
+systemctl restart sshd
+######################################################
+
+
+######################################################
+#      Generic settings on both HN and WNs           #
+######################################################
+
+#Create directories:
+[ -e /soft ]     || mkdir -p /soft 
+[ -e /scratch ]  || mkdir -p /scratch
+
+#Disable the firewalld service:
+systemctl disable firewalld
+
+#Configure the /etc/hosts file
+echo "127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4" >  /etc/hosts
+echo "::1         localhost localhost.localdomain localhost6 localhost6.localdomain6" >> /etc/hosts
+echo >> /etc/hosts
+echo "$HN_IP    $HN_HOSTNAME ${HN_HOSTNAME}.${DOMAIN_NAME}" >> /etc/hosts
+echo "$WN01_IP    $WN01_HOSTNAME ${WN01_HOSTNAME}.${DOMAIN_NAME}" >> /etc/hosts
+echo "$WN02_IP    $WN02_HOSTNAME ${WN02_HOSTNAME}.${DOMAIN_NAME}" >> /etc/hosts
+
+#Disable SELinux
+sed -i "s|^SELINUX=.*|SELINUX=disabled|g" /etc/selinux/config
+if ! [ $(getenforce) == "Disabled" ]; then
+	clear
+	echo "ERROR:"
+	echo "    SELinux is not disabled, we have to restart."
+	echo
+	echo "    After restarting, rerun $0"
+	echo "    Press ENTER to restart the machine now"
+	read
+	reboot
+fi
+
+#Install Required Generic Packages:
+rpm -q epel-release || yum -y install epel-release
+yum -y groupinstall "Development Tools" "Compatibility Libraries" "Compute Node"
+yum -y install \
+	nfs-utils      iptables             net-tools       deltarpm \
+	vim            nano                 htop            numactl \
+	torque-client  torque-mom           munge           ganglia-gmond \
+	openmpi-devel  environment-modules  wget            elinks \
+	dos2unix       unix2dos             hwloc           hwloc-devel \
+	texinfo        autogen              bind-utils      net-utils htop 
+yum -y install \
+	libxml2-devel  boost-devel          lapack-devel    grace-devel \
+	libgcc.i686    cmake-devel          fftw-devel      glibc-devel.i686
+
+
+######################################################
+#                     Fix Network                    #
+######################################################
+systemctl disable NetworkManager
+systemctl enable network
+cd /etc/sysconfig/network-scripts/
+for interface in $(ls ifcfg-e*); do
+	#make sure that the interface starts up when machine reboots
+	sed -i "s|ONBOOT=.*|ONBOOT=yes|g" $interface
+	sed -i "/^DNS1/d" $interface
+	echo "DNS1=$DNS_SERVER" >> $interface
+done
+
+systemctl restart network
+######################################################
+# Done with generic settings.
+######################################################
+
+if [ "$Install_Node" == "$HN_HOSTNAME" ]; then
+	echo
+	echo "Configuring Head Node"
+	echo
+
+	yum -y install \
+		iptables-services
+	systemctl enable iptables
+	systemctl enable nfs
+
+	#Configure NFS
+	echo "/soft          $PRIVATE_IP_RANGE(rw,no_root_squash,async)" >  /etc/exports
+	echo "/home          $PRIVATE_IP_RANGE(rw,no_root_squash,async)" >> /etc/exports
+	echo "/scratch       $PRIVATE_IP_RANGE(rw,no_root_squash,async)" >> /etc/exports
+	systemctl restart nfs
+	
+	cd /etc/sysconfig/network-scripts
+	if ! [ -e ifcfg-$HN_INTERFACE_PRIVATE ]; then
+		echo "ERROR"
+		echo "   The configuration for the device $HN_INTERFACE_PRIVATE, does not exist."
+		echo "   Make sure that the device is correctly defined in this script and rerun $0."
+		exit 1
+	fi
+	if ! [ -e ifcfg-$HN_INTERFACE_PUBLIC ]; then
+		echo "ERROR"
+		echo "   The configuration for the device $HN_INTERFACE_PUBLIC, does not exist."
+		echo "   Make sure that the device is correctly defined in this script and rerun $0."
+		exit 1
+	fi
+
+	#Generate SSH keys for passwordless ssh
+	/bin/rm -rf ~/.ssh
+	ssh-keygen -t rsa -N ''	-f ~/.ssh/id_rsa > /dev/null
+	cat ~/.ssh/id_rsa.pub > ~/.ssh/autorized_keys
+	chmod 600  ~/.ssh/autorized_keys
+	#Now for the HPC user:
+	[ -e /home/hpc/.ssh ] && /bin/rm -rf /home/hpc/.ssh
+	sudo -u hpc ssh-keygen -t rsa -N '' -f /home/hpc/.ssh/id_rsa > /dev/null
+	sudo -u hpc cat /home/hpc/.ssh/id_rsa.pub > /home/hpc/.ssh/autorized_keys
+	chmod 600 /home/hpc/.ssh/autorized_keys
+
+	#Now we copy Root's .ssh directory to the Worker nodes
+	ping -c 1 $WN01_IP > /dev/null && scp -r ~/.ssh $WN01_IP:
+	ping -c 1 $WN02_IP > /dev/null && scp -r ~/.ssh $WN02_IP:
+
+	#Setting up NAT
+	grep "*nat" /etc/sysconfig/iptables > /dev/null
+	if [ $? -ne 0 ] then	
+		echo "NAT was not configured....configuring now:"
+		sed -i "s|-A INPUT -i lo -j ACCEPT|-A INPUT -i lo -j ACCEPT\n-A INPUT -i $HN_INTERFACE_PUBLIC -o $HN_INTERFACE_PRIVATE -m state --state RELATED,ESTABLISHED -j ACCEPT\n-A INPUT -i $HN_INTERFACE_PRIVATE -o $HN_INTERFACE_PUBLIC -j ACCEPT|g" /etc/sysconfig/iptables
+		echo "*nat" >> /etc/sysconfig/iptables
+		echo "-a POSTROUTING -o $HN_INTERFACE_PUBLIC -j MASQUERADE" >> /etc/sysconfig/iptables
+		echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+		sysctl -p
+		systemctl restart iptables
+	fi
+	
+else
+	echo
+	echo "Configuring Worker Node"
+	#Configure FSTAB
+	#Remove our entries if they exist
+	sed -i "/^$HN_HOSTNAME:.*/d" /etc/fstab
+	#Now add our entries
+	echo "$HN_HOSTNAME:/home       /home       nfs   defaults 0 0" >> /etc/fstab
+	echo "$HN_HOSTNAME:/soft       /soft       nfs   defaults 0 0" >> /etc/fstab
+	echo "$HN_HOSTNAME:/scratch    /scratch    nfs   defaults 0 0" >> /etc/fstab
+fi
+
+if [ "$Install_Node" == "$WN01_HOSTNAME" ]; then
+	echo "Specific configuration for $WN01_HOSTNAME"
+fi
+
+if [ "$Install_Node" == "WN02_HOSTNAME" ]; then
+	echo "Specific configuration for $WN01_HOSTNAME"
+fi
+
+exit 0

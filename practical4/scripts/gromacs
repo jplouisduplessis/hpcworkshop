@@ -1,0 +1,23 @@
+#%Module1.0
+## gromacs modulefile
+##
+proc ModulesHelp { } {
+        puts stderr "\tAdds Gromacs to your environment."
+}
+module-whatis   "Sets the environment for using Gromacs"
+
+module load mpi
+
+set             GMX_VERSION     2018.1
+set             GMX_DIR         /soft/gromacs/$GMX_VERSION
+
+setenv          GMX_SUFFIX      _mpi
+setenv          GMXLDLIB        $GMX_DIR/lib
+setenv          GMXBIN          $GMX_DIR/bin
+setenv          GMXMAN          $GMX_DIR/share/man
+setenv          GMXDATA         $GMX_DIR/share
+setenv          GMXLIB          $GMX_DIR/share/gromacs/top
+
+prepend-path    PATH            $GMX_DIR/bin
+prepend-path    MANPATH         $GMX_DIR/share/man
+prepend-path    LD_LIBRARY_PATH $GMX_DIR/lib64
